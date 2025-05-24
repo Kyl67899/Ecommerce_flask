@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Products | My Store</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    />
+    <style>
+      aside {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+      }
+
+      .card {
+        border-radius: 8px;
+        transition: transform 0.3s;
+      }
+
+      .card:hover {
+        transform: scale(1.05);
+      }
+
+      .btn-primary {
+        width: 100%;
+      }
+
+      .loader {
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #3498db;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        display: block;
+        margin: 20px auto;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <div class="container">
+        <a class="navbar-brand" href="/">E-Shop</a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            {% if current_user.is_authenticated %}
+            <li class="nav-item">
+              <a class="nav-link" href="/dashboard">🏠 Dashboard</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/cart">🛒 Cart</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/wishlist">❤️ Wishlist</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-danger" href="/logout">🚪 Logout</a>
+            </li>
+
+            <!-- Profile Dropdown -->
+            <li class="nav-item dropdown">
+              <a
+                class="nav-link dropdown-toggle"
+                href="#"
+                id="profileDropdown"
+                role="button"
+                data-bs-toggle="dropdown"
+              >
+                <img
+                  src="{{ current_user.profile_image or url_for('static', filename='default_profile.jpg') }}"
+                  class="rounded-circle"
+                  width="30"
+                />
+                {{ current_user.username }}
+              </a>
+              <ul class="dropdown-menu">
+                <li>
+                  <a class="dropdown-item" href="/dashboard">Dashboard</a>
+                </li>
+                <li><a class="dropdown-item" href="/profile">Profile</a></li>
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                  <a class="dropdown-item text-danger" href="/logout">Logout</a>
+                </li>
+              </ul>
+            </li>
+
+            {% else %}
+            <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+
+            <!-- Products Dropdown -->
+            <li class="nav-item dropdown">
+              <a
+                class="nav-link dropdown-toggle"
+                href="#"
+                id="productsDropdown"
+                role="button"
+                data-bs-toggle="dropdown"
+              >
+                Products
+              </a>
+              <ul class="dropdown-menu">
+                {% for category in categories %}
+                <li class="dropdown-submenu">
+                  <a class="dropdown-item dropdown-toggle" href="#"
+                    >{{ category.name }}</a
+                  >
+                  <ul class="dropdown-menu">
+                    {% for product in category.products %}
+                    <li>
+                      <a class="dropdown-item" href="/product/{{ product.id }}"
+                        >{{ product.name }}</a
+                      >
+                    </li>
+                    {% endfor %}
+                  </ul>
+                </li>
+                {% endfor %}
+              </ul>
+            </li>
+
+            <!-- Cart Icon -->
+            <li class="nav-item">
+              <a class="nav-link" href="/cart">
+                🛒 Cart (<span id="cart-count"
+                  >{{ session['cart_count'] if 'cart_count' in session else 0
+                  }}</span
+                >)
+              </a>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link" href="/login">Login</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/signup">Sign Up</a>
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <!-- Navbar -->
+
+    <div class="container mt-5">
+      <h2>Products</h2>
+
+      {% with messages = get_flashed_messages(with_categories=True) %} {% if
+      messages %}
+      <div class="container mt-3">
+        {% for category, message in messages %}
+        <div
+          class="alert alert-{{ category }} alert-dismissible fade show"
+          role="alert"
+        >
+          {{ message }}
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="alert"
+          ></button>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- ✅ Filter Options -->
+      <form method="GET" action="/products">
+        <label for="category">Filter by Category:</label>
+        <select name="category">
+          <option value="">All</option>
+          {% for category in categories %}
+          <option value="{{ category.name }}">{{ category.name }}</option>
+          {% endfor %}
+        </select>
+
+        <label for="sale">On Sale:</label>
+        <input type="checkbox" name="sale" value="true" />
+
+        <label for="min_price">Min Price:</label>
+        <input type="number" name="min_price" />
+
+        <label for="max_price">Max Price:</label>
+        <input type="number" name="max_price" />
+
+        <label for="rating">Minimum Rating:</label>
+        <input type="number" name="rating" step="0.1" />
+
+        <button type="submit" class="btn btn-primary">Apply Filters</button>
+      </form>
+
+      <div class="row mt-4">
+        {% for product in products %}
+        <div class="col-md-4">
+          <div class="card">
+            <img src="{{ product.image_url }}" class="card-img-top" />
+            <div class="card-body">
+              <h5 class="card-title">{{ product.name }}</h5>
+              <p>${{ product.price }}</p>
+              <p>Rating: {{ product.average_rating }}/5</p>
+              <a
+                href="/product/{{ product.id }}"
+                class="btn btn-primary w-50 mb-2"
+              >
+                View Item
+              </a>
+
+              <form method="POST" action="/add_to_cart/{{ product.id }}">
+                <button type="submit" class="btn btn-success w-50">
+                  Add to Cart
+                </button>
+              </form>
+
+              {% endif %} {% endwith %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- footer -->
+    <footer class="footer bg-dark text-light py-4 mt-5">
+      <div class="container">
+        <div class="row g-4 text-center text-md-start">
+          <!-- ✅ Responsive spacing -->
+
+          <!-- 🔹 Quick Links -->
+          <div class="col-12 col-md-3">
+            <h5>Quick Links</h5>
+            <ul class="list-unstyled">
+              <li><a href="/" class="footer-link">Home</a></li>
+              <li><a href="/products" class="footer-link">Products</a></li>
+              <li><a href="/contact" class="footer-link">Contact Us</a></li>
+              <li><a href="/subscribe" class="footer-link">Subscribe</a></li>
+            </ul>
+          </div>
+
+          <!-- 🔹 Social Media Links -->
+          <div class="col-12 col-md-3">
+            <h5>Follow Us</h5>
+            <ul class="list-unstyled">
+              <li>
+                <a href="#" class="footer-link"
+                  ><i class="fab fa-facebook"></i> Facebook</a
+                >
+              </li>
+              <li>
+                <a href="#" class="footer-link"
+                  ><i class="fab fa-instagram"></i> Instagram</a
+                >
+              </li>
+              <li>
+                <a href="#" class="footer-link"
+                  ><i class="fab fa-twitter"></i> Twitter</a
+                >
+              </li>
+            </ul>
+          </div>
+
+          <!-- 🔹 Subscription Form -->
+          <div class="col-12 col-md-3">
+            <h5>Subscribe</h5>
+            <form action="/subscribe" method="POST">
+              <div class="input-group">
+                <input
+                  type="email"
+                  name="email"
+                  class="form-control"
+                  placeholder="Enter email"
+                />
+                <button type="submit" class="btn btn-primary">Subscribe</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- 🔹 Hidden Admin Link -->
+          <div class="col-12 col-md-3">
+            <h5>Admin</h5>
+            <a href="/admin" class="text-muted admin-link">Admin Access</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- ✅ Custom Styles -->
+    <style>
+      .footer-link {
+        color: white;
+        text-decoration: none;
+        transition: color 0.3s ease-in-out;
+      }
+      .footer-link:hover {
+        color: #17a2b8; /* ✅ Highlight on hover */
+      }
+      .admin-link {
+        opacity: 0.3;
+        transition: opacity 0.3s ease-in-out;
+      }
+      .admin-link:hover {
+        opacity: 1; /* ✅ Visible on hover */
+      }
+    </style>
+
+    <!-- ✅ FontAwesome Icons -->
+    <script
+      src="https://kit.fontawesome.com/a076d05399.js"
+      crossorigin="anonymous"
+    ></script>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
