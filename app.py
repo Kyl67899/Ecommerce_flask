@@ -473,7 +473,6 @@ def cart():
         total_price=f"{total_price:.2f}"
     )
 
-
 # order processing route
 import random
 
