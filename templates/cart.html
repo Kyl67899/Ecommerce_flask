@@ -127,85 +127,86 @@
     </nav>
     <!-- Navbar -->
 
-    <div class="container mt-5">
-      <h2>Your Shopping Cart</h2>
+    <div class="table-responsive">
+      <!-- ✅ Enables horizontal scrolling for smaller screens -->
       {% with messages = get_flashed_messages(with_categories=True) %} {% if
-        messages %}
-        <div class="container mt-3">
-          {% for category, message in messages %}
-          <div
-            class="alert alert-{{ category }} alert-dismissible fade show"
-            role="alert"
-          >
-            {{ message }}
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="alert"
-            ></button>
-          </div>
-          {% endfor %}
+      messages %}
+      <div class="container mt-3">
+        {% for category, message in messages %}
+        <div
+          class="alert alert-{{ category }} alert-dismissible fade show"
+          role="alert"
+        >
+          {{ message }}
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="alert"
+          ></button>
         </div>
-      {% if cart %}
+        {% endfor %}
+      </div>
+      {% endif %} {% endwith %}
+
       <table class="table">
         <thead>
           <tr>
-            <th>Product</th>
-            <th>Price</th>
-            <th>Quantity</th>
-            <th>Total</th>
-            <th>Actions</th>
+            {% for header in headers %}
+            <th>{{ header }}</th>
+            <!-- ✅ Dynamically inserts headers -->
+            {% endfor %}
           </tr>
         </thead>
         <tbody>
           {% for item_id, item in cart.items() %}
           <tr>
-            <td>{{ item.name }}</td>
-            <td>${{ item.price }}</td>
+            <td>{{ item["name"] }}</td>
             <td>
-              <form action="/update_cart/{{ item_id }}" method="post">
+              <form method="POST" action="/update_quantity/{{ item_id }}">
                 <input
                   type="number"
                   name="quantity"
-                  value="{{ item.quantity }}"
+                  class="form-control w-50"
+                  value="{{ item['quantity'] }}"
                   min="1"
-                  class="form-control"
                 />
-                <button type="submit" class="btn btn-warning btn-sm mt-2">
+                <button type="submit" class="btn btn-primary btn-sm d-flex">
                   Update
                 </button>
               </form>
             </td>
-            <td>${{ item.price * item.quantity }}</td>
+            <td>${{ "%.2f"|format(item["original_price"]) }}</td>
             <td>
-              <a href="/remove_item/{{ item_id }}" class="btn btn-danger btn-sm"
-                >Remove</a
+              {% if item["discount"] and item["discount"] > 0 %}
+              <strong class="text-danger"
+                >${{ "%.2f"|format(item["discount"]) }}</strong
               >
+              {% else %} ${{ "%.2f"|format(item["original_price"]) }} {% endif
+              %}
+            </td>
+            <td>
+              <form method="POST" action="/remove_from_cart/{{ item_id }}">
+                <button type="submit" class="btn btn-danger btn-sm">
+                  Remove
+                </button>
+              </form>
             </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
-
-      <h4>Subtotal: ${{ subtotal }}</h4>
-      <h4>Tax (8%): ${{ tax }}</h4>
-      <h3><strong>Total Price: ${{ total_price }}</strong></h3>
-
-      <a href="/checkout" class="btn btn-success">Proceed to Checkout</a>
-      {% else %}
-      <p>Your cart is empty.</p>
-      {% endif %}
     </div>
-    {% endif %} {% endwith %}
+
+    <h4>Subtotal: ${{ subtotal }}</h4>
+    <h4>Tax (8%): ${{ tax }}</h4>
+    <h3 class="text-danger">Total Price: ${{ total_price }}</h3>
 
     <!-- footer -->
     <footer class="footer bg-dark text-light py-4 mt-5">
       <div class="container">
         <div class="row g-4 text-center text-md-start">
-          <!-- ✅ Responsive spacing -->
-
-          <!-- 🔹 Quick Links -->
-          <div class="col-12 col-md-3">
+          <div class="col-12 col-sm-6 col-md-3">
+            <!-- ✅ Adjusts layout based on screen size -->
             <h5>Quick Links</h5>
             <ul class="list-unstyled">
               <li><a href="/" class="footer-link">Home</a></li>
@@ -214,9 +215,7 @@
               <li><a href="/subscribe" class="footer-link">Subscribe</a></li>
             </ul>
           </div>
-
-          <!-- 🔹 Social Media Links -->
-          <div class="col-12 col-md-3">
+          <div class="col-12 col-sm-6 col-md-3">
             <h5>Follow Us</h5>
             <ul class="list-unstyled">
               <li>
@@ -236,8 +235,6 @@
               </li>
             </ul>
           </div>
-
-          <!-- 🔹 Subscription Form -->
           <div class="col-12 col-md-3">
             <h5>Subscribe</h5>
             <form action="/subscribe" method="POST">
@@ -252,8 +249,6 @@
               </div>
             </form>
           </div>
-
-          <!-- 🔹 Hidden Admin Link -->
           <div class="col-12 col-md-3">
             <h5>Admin</h5>
             <a href="/admin" class="text-muted admin-link">Admin Access</a>
